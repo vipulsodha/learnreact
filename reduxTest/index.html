@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width">
     <title>JS Bin</title>
 
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js'></script>
+    <script src='https://unpkg.com/react@16.3.0-alpha.1/umd/react.development.js'></script>
+    <script src='https://unpkg.com/react-dom@16.3.0-alpha.1/umd/react-dom.development.js'></script>
+    <script src='https://unpkg.com/babel-standalone@6.15.0/babel.min.js'></script>
+
 
 </head>
 <body>
 
-<div>
+<div style="float: left; width: 45%; border-right: 2px solid black">
     <h1>TODO</h1>
     <input type = "text" id = "add-todo-input"/>
     <button id = "add-todo-button" value = "Add button">
@@ -19,96 +24,18 @@
 
     </div>
 
+
+
+
+
+
+<div id = 'app' style="float: right; width: 45%"></div>
+
 <script type="text/javascript">
 
-    function createStore(reducer) {
-
-
-        var state;
-
-        var listeners = [];
-
-
-
-        var dispatch = function (action) {
-
-            state = reducer(action, state);
-            listeners.forEach(function (listener) {
-                listener();
-            });
-
-        }
-
-
-        var subscribe = function (listener) {
-
-            listeners.push(listener);
-
-            return function () {
-                listeners = listeners.filter(function (callback) {
-                    return listener !== callback
-                });
-            }
-        }
-
-
-        var getState = function () {
-
-            return state;
-        }
-
-
-
-        return {
-            getState: getState,
-            subscribe: subscribe,
-            dispatch: dispatch
-        }
-
-    }
-
-
-    var ADD_TODO = "add_todo";
-    var REMOVE_TODO = "remove_todo";
-    var MARK_DONE = "mark_done";
-
-    var todoReducer = function (action, state = []) {
-
-        switch (action.type) {
-
-            case ADD_TODO:
-
-                return state.concat(action.payload)
-
-                break;
-
-            case REMOVE_TODO:
-
-                return state.filter(function (s) {
-                    s.id != action.payload.id;
-                });
-
-                break;
-
-            case MARK_DONE:
-
-
-                break;
-
-        }
-
-
-    }
-
-
-    var combinedReducers = function (action, state = {}) {
-
-        return {
-            todo: todoReducer(action, state.todo)
-        }
-
-    }
-
+    var addTodoInput = document.getElementById("add-todo-input");
+    var addTodoButton = document.getElementById("add-todo-button");
+    var todoList = document.getElementById('todo-list');
 
 
     var addTodoActionCreator = function (data) {
@@ -131,16 +58,92 @@
     }
 
 
-    var store = createStore(combinedReducers);
+    var addTodoToDom = function (todo) {
+        const node = document.createElement('li');
+        const text = document.createTextNode(todo);
+        node.appendChild(text);
+        todoList.appendChild(node);
+    }
+
+
+    var ADD_TODO = "add_todo";
+    var REMOVE_TODO = "remove_todo";
+    var MARK_DONE = "mark_done";
+
+    var todo = function (state = [], action) {
+
+        switch (action.type) {
+
+            case ADD_TODO:
+
+                return state.concat(action.payload)
+
+                break;
+
+            case REMOVE_TODO:
+
+                return state.filter(function (s) {
+                    s.id != action.payload.id;
+                });
+
+                break;
+
+            case MARK_DONE:
+
+
+                break;
+
+            default:
+                return state;
+
+        }
+
+
+    }
+
+    const logger = (store) => (next) => (action) => {
+
+
+        console.log("hello logger")
+
+        const result = next(action)
+
+
+        console.log("logger");
+        console.log(result);
+        return result;
+    }
+
+
+
+
+    const store = Redux.createStore(Redux.combineReducers({
+        todo,
+    }), Redux.applyMiddleware(logger));
+
+
     var uns = store.subscribe(function() {
-        console.log("chnaged data");
+
+
+        var state = store.getState();
+
+        todoList.innerHTML = "";
+
+        state.todo.forEach(function (e) {
+
+            addTodoToDom(e);
+        })
+
+//        const node = document.createElement('li');
+//        const text = document.createTextNode(state.todo[state.todo.length -1]);
+//        node.appendChild(text);
+//        todoList.appendChild(node);
+
+
+
+
     });
 
-
-
-
-    var addTodoInput = document.getElementById("add-todo-input");
-    var addTodoButton = document.getElementById("add-todo-button");
 
     addTodoButton.addEventListener("click", function(e) {
 
@@ -148,6 +151,100 @@
     });
 
 </script>
+
+<script type="text/babel" >
+
+    function List(props) {
+
+
+        var todoList = props.todo.map(function (e, index) {
+           return (
+                   <li key={index}>{e}</li>
+           )
+        });
+
+        return(
+            <ul>
+                {todoList}
+            </ul>
+        )
+    }
+
+    class Todo extends React.Component {
+
+
+        constructor(props) {
+            super(props);
+            this.onButtonClick = this.onButtonClick.bind(this);
+        }
+
+        onButtonClick(e) {
+            e.preventDefault();
+            console.log(this);
+            this.props.onAddTodo(this.input.value);
+        }
+        render() {
+            return (
+                <div>
+                    <h1>ReactTodo</h1>
+                    <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
+                    <button onClick={this.onButtonClick}>Add todo</button>
+                    <List todo = {this.props.todo}/>
+                </div>
+            )
+        }
+    }
+
+
+    class App extends React.Component {
+
+        constructor(props) {
+            super(props);
+            this.onAddTodo = this.onAddTodo.bind(this);
+
+
+        }
+
+
+
+        componentDidMount() {
+
+
+            const  {store} = this.props;
+
+            store.subscribe(() => {
+
+                this.forceUpdate();
+
+
+            });
+
+        }
+
+        onAddTodo(inputValue) {
+            this.props.store.dispatch(addTodoActionCreator(inputValue));
+        }
+
+        render() {
+
+
+            const  {todo}= this.props.store.getState();
+
+
+            return (
+                <div>
+                    <Todo onAddTodo = {this.onAddTodo} todo = {todo}/>
+
+                </div>
+            )
+        }
+    }
+
+    ReactDOM.render(<App store={store}/>, document.getElementById('app'));
+
+
+</script>
+
 
 </body>
 </html>
