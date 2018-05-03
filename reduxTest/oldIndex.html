@@ -14,56 +14,23 @@
 </head>
 <body>
 
-<div id = 'app'></div>
+<div style="float: left; width: 45%; border-right: 2px solid black">
+    <h1>TODO</h1>
+    <input type = "text" id = "add-todo-input"/>
+    <button id = "add-todo-button" value = "Add button">
+        Add todo
+    </button>
+    <ul id = "todo-list"></ul>
 
-<script type="text/babel" >
+</div>
 
+<div id = 'app' style="float: right; width: 45%"></div>
 
+<script type="text/javascript">
 
-    const connect = (mapStateToProps) => (Component) => {
-
-        class ReceiverComponent extends React.Component {
-
-            componentDidMount() {
-
-                const {subscribe} = this.props.store;
-
-                this.unsubscribe = subscribe(() => this.forceUpdate());
-
-
-            }
-
-            componentWillUnmount() {
-                this.unsubscribe();
-            }
-
-            render() {
-
-                var props = mapStateToProps(this.props.store.getState());
-
-                return (<Component {...props} dispatch = {this.props.store.dispatch}/>);
-            }
-
-
-        }
-
-
-        class ConnectedComponent extends React.Component {
-
-            render() {
-
-                return (
-                        <Context.Consumer>
-                            {(store) => <ReceiverComponent store = {store} />}
-                        </Context.Consumer>
-                )
-            }
-        }
-
-
-        return ConnectedComponent
-    }
-
+    var addTodoInput = document.getElementById("add-todo-input");
+    var addTodoButton = document.getElementById("add-todo-button");
+    var todoList = document.getElementById('todo-list');
 
     const  thunk = (store) => (next) => (action) => {
 
@@ -87,44 +54,26 @@
 
     }
 
-    var receiveTodoActionCreator = function (data) {
+    var removeTodoActionCreator = function (data) {
 
         return {
-            type: RECEIVED_DATA,
+            type: REMOVE_TODO,
             payload: data
         }
     }
 
 
-    var someAsyncActionForAdd = function(data) {
-
-        return function (dispatch) {
-
-            setTimeout(function () {
-
-                dispatch(receiveTodoActionCreator(data));
-
-            }, 0);
-        }
+    var addTodoToDom = function (todo) {
+        const node = document.createElement('li');
+        const text = document.createTextNode(todo);
+        node.appendChild(text);
+        todoList.appendChild(node);
     }
 
-
-    var handleInitialData = function() {
-
-        return function (dispatch) {
-
-            setTimeout(function () {
-
-                dispatch(receiveTodoActionCreator("yo"));
-
-            }, 1000);
-        }
-    }
 
     var ADD_TODO = "add_todo";
     var REMOVE_TODO = "remove_todo";
     var MARK_DONE = "mark_done";
-    var RECEIVED_DATA = "RECEIVED_DATA";
 
     var todo = function (state = [], action) {
 
@@ -145,67 +94,84 @@
                 break;
 
             case MARK_DONE:
-                break;
 
-            case RECEIVED_DATA:
-
-                return state.concat(action.payload);
 
                 break;
 
             default:
                 return state;
-        }
-    }
-
-    var loading = function(state = true, action) {
-        switch (action.type) {
-
-
-            case RECEIVED_DATA:
-
-                return false;
-
-            default:
-
-                return true;
-
-            break;
-
 
         }
+
+
     }
 
     const logger = (store) => (next) => (action) => {
 
+
         console.log("hello logger")
+
         const result = next(action)
+
+
         console.log("logger");
         console.log(result);
         return result;
     }
 
 
+
+
     const store = Redux.createStore(Redux.combineReducers({
         todo,
-        loading
     }), Redux.applyMiddleware(logger, thunk));
 
-    const Context = React.createContext();
+
+    var uns = store.subscribe(function() {
+
+
+        var state = store.getState();
+
+        todoList.innerHTML = "";
+
+        state.todo.forEach(function (e) {
+
+            addTodoToDom(e);
+        })
+
+//        const node = document.createElement('li');
+//        const text = document.createTextNode(state.todo[state.todo.length -1]);
+//        node.appendChild(text);
+//        todoList.appendChild(node);
+
+
+
+
+    });
+
+
+    addTodoButton.addEventListener("click", function(e) {
+
+        store.dispatch(addTodoActionCreator(addTodoInput.value));
+    });
+
+</script>
+
+<script type="text/babel" >
 
     function List(props) {
 
 
         var todoList = props.todo.map(function (e, index) {
-           return (
-                   <li key={index}>{e}</li>
-           )
+            return (
+                    <li key={index}>{e}</li>
+            )
         });
 
         return(
-            <ul>
-                {todoList}
-            </ul>
+                <ul>
+                    {todoList}
+                </ul>
         )
     }
 
@@ -226,26 +192,15 @@
         }
         render() {
             return (
-                <div>
-                    <h1>ReactTodo</h1>
-                    <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
-                    <button onClick={this.onButtonClick}>Add todo</button>
-                    <List todo = {this.props.todo}/>
-                </div>
+                    <div>
+                        <h1>ReactTodo</h1>
+                        <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
+                        <button onClick={this.onButtonClick}>Add todo</button>
+                        <List todo = {this.props.todo}/>
+                    </div>
             )
         }
     }
-
-
-
-
-    const ConnectedTodo = connect((state) => {
-
-       return {
-           todo: state.todo
-       }
-
-    })(Todo);
 
 
     class App extends React.Component {
@@ -260,36 +215,49 @@
 
             const  {store} = this.props;
 
+            store.subscribe(() => {
 
-            this.props.dispatch(handleInitialData());
+                this.forceUpdate();
 
+            });
         }
 
         onAddTodo(inputValue) {
 
-            this.props.dispatch(addTodoActionCreator(inputValue));
+            this.props.store.dispatch(someAsyncActionForAdd(inputValue));
         }
 
         render() {
 
-            const  {loading}= this.props;
-
-            if(loading === true) {
-
-                return (<h1>Loading </h1>)
-            }
+            const  {todo}= this.props.store.getState();
 
             return (
-                <div>
-                    <ConnectedTodo/>
+                    <div>
+                        <Todo onAddTodo = {this.onAddTodo} todo = {todo} dispatch = {this.props.store.dispatch}/>
 
-                </div>
+                    </div>
             )
         }
     }
 
+    function someAsyncActionForAdd(data) {
 
-    const ConnectedApp = connect((state) => ({loading: state.loading}))(App);
+        return function (dispatch) {
+
+            setTimeout(function () {
+
+                dispatch(addTodoActionCreator(data));
+
+            }, 1000);
+
+        }
+
+    }
+
+
+
+    const Context = React.createContext();
+
 
 
     class Provider extends  React.Component {
@@ -302,12 +270,12 @@
 
                     </Context.Provider>
             )
+
         }
     }
 
-    ReactDOM.render(<Provider store={store} >
-        <ConnectedApp/>
-    </Provider>, document.getElementById('app'));
+    ReactDOM.render(<Provider store = {store} ><App store={store}/></Provider>, document.getElementById('app'));
+
 
 </script>
 

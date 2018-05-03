@@ -170,7 +170,7 @@
 
                 return true;
 
-            break;
+                break;
 
 
         }
@@ -197,15 +197,15 @@
 
 
         var todoList = props.todo.map(function (e, index) {
-           return (
-                   <li key={index}>{e}</li>
-           )
+            return (
+                    <li key={index}>{e}</li>
+            )
         });
 
         return(
-            <ul>
-                {todoList}
-            </ul>
+                <ul>
+                    {todoList}
+                </ul>
         )
     }
 
@@ -226,12 +226,12 @@
         }
         render() {
             return (
-                <div>
-                    <h1>ReactTodo</h1>
-                    <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
-                    <button onClick={this.onButtonClick}>Add todo</button>
-                    <List todo = {this.props.todo}/>
-                </div>
+                    <div>
+                        <h1>ReactTodo</h1>
+                        <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
+                        <button onClick={this.onButtonClick}>Add todo</button>
+                        <List todo = {this.props.todo}/>
+                    </div>
             )
         }
     }
@@ -241,9 +241,9 @@
 
     const ConnectedTodo = connect((state) => {
 
-       return {
-           todo: state.todo
-       }
+        return {
+            todo: state.todo
+        }
 
     })(Todo);
 
@@ -280,10 +280,10 @@
             }
 
             return (
-                <div>
-                    <ConnectedTodo/>
+                    <div>
+                        <ConnectedTodo/>
 
-                </div>
+                    </div>
             )
         }
     }

@@ -19,52 +19,6 @@
 <script type="text/babel" >
 
 
-
-    const connect = (mapStateToProps) => (Component) => {
-
-        class ReceiverComponent extends React.Component {
-
-            componentDidMount() {
-
-                const {subscribe} = this.props.store;
-
-                this.unsubscribe = subscribe(() => this.forceUpdate());
-
-
-            }
-
-            componentWillUnmount() {
-                this.unsubscribe();
-            }
-
-            render() {
-
-                var props = mapStateToProps(this.props.store.getState());
-
-                return (<Component {...props} dispatch = {this.props.store.dispatch}/>);
-            }
-
-
-        }
-
-
-        class ConnectedComponent extends React.Component {
-
-            render() {
-
-                return (
-                        <Context.Consumer>
-                            {(store) => <ReceiverComponent store = {store} />}
-                        </Context.Consumer>
-                )
-            }
-        }
-
-
-        return ConnectedComponent
-    }
-
-
     const  thunk = (store) => (next) => (action) => {
 
         if (typeof action === 'function') {
@@ -170,7 +124,7 @@
 
                 return true;
 
-            break;
+                break;
 
 
         }
@@ -197,15 +151,15 @@
 
 
         var todoList = props.todo.map(function (e, index) {
-           return (
-                   <li key={index}>{e}</li>
-           )
+            return (
+                    <li key={index}>{e}</li>
+            )
         });
 
         return(
-            <ul>
-                {todoList}
-            </ul>
+                <ul>
+                    {todoList}
+                </ul>
         )
     }
 
@@ -226,26 +180,44 @@
         }
         render() {
             return (
-                <div>
-                    <h1>ReactTodo</h1>
-                    <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
-                    <button onClick={this.onButtonClick}>Add todo</button>
-                    <List todo = {this.props.todo}/>
-                </div>
+                    <div>
+                        <h1>ReactTodo</h1>
+                        <input type="text" placeholder="todo" ref={(input) => this.input = input}/>
+                        <button onClick={this.onButtonClick}>Add todo</button>
+                        <List todo = {this.props.todo}/>
+                    </div>
             )
         }
     }
 
+    class ConnectedTodo extends React.Component {
+
+
+        render() {
+
+            return (
+
+                    <Context.Consumer>
+                        {(store) => {
 
 
 
-    const ConnectedTodo = connect((state) => {
+                            const {todo} = store.getState();
 
-       return {
-           todo: state.todo
-       }
 
-    })(Todo);
+                            return (<Todo todo = {todo} dispatch = {store.dispatch}/>)
+
+
+
+                        }
+
+                        }
+                    </Context.Consumer>
+            )
+
+
+        }
+    }
 
 
     class App extends React.Component {
@@ -261,18 +233,23 @@
             const  {store} = this.props;
 
 
-            this.props.dispatch(handleInitialData());
+            this.props.store.dispatch(handleInitialData());
 
+            store.subscribe(() => {
+
+                this.forceUpdate();
+
+            });
         }
 
         onAddTodo(inputValue) {
 
-            this.props.dispatch(addTodoActionCreator(inputValue));
+            this.props.store.dispatch(addTodoActionCreator(inputValue));
         }
 
         render() {
 
-            const  {loading}= this.props;
+            const  {loading}= this.props.store.getState();
 
             if(loading === true) {
 
@@ -280,16 +257,31 @@
             }
 
             return (
-                <div>
-                    <ConnectedTodo/>
+                    <div>
+                        <ConnectedTodo/>
 
-                </div>
+                    </div>
             )
         }
     }
 
 
-    const ConnectedApp = connect((state) => ({loading: state.loading}))(App);
+    class ConnectedApp extends React.Component {
+
+        render() {
+
+            return (
+                    <Context.Consumer>
+                        {(store) => {
+
+                            return (<App store={store}/>)
+                        }
+                        }
+                    </Context.Consumer>
+            )
+
+        }
+    }
 
 
     class Provider extends  React.Component {
@@ -307,6 +299,8 @@
 
     ReactDOM.render(<Provider store={store} >
         <ConnectedApp/>
+
+
     </Provider>, document.getElementById('app'));
 
 </script>
